@@ -2,16 +2,18 @@ const {ObjectId} = require("mongodb");
 
 class ContactService {
     constructor(client) {
-        this.Contact = client.db().collection("contacts");
+        this.Contact = client.db().collection("congvan");
     }
 
     extractConactData(payload){
         const contact = {
-            name: payload.name,
-            email: payload.email,
-            address: payload.address,
-            phone: payload.phone,
-            favorite: payload.favorite,
+            SoCongVan: payload.SoCongVan,
+            TenCongVan: payload.TenCongVan,
+            LoaiCongVan: payload.LoaiCongVan,
+            DonViGui: payload.DonViGui,
+            NguoiGui: payload.NguoiGui,
+            NgayNhan: new Date(),
+            File: payload.File
         };
 
         Object.keys(contact).forEach(
@@ -20,12 +22,31 @@ class ContactService {
         return contact;
     }
 
-    async create(payload) {
-        const contact = this.extractConactData(payload);
-        const result = await this.Contact.findOneAndUpdate(
-            contact,
-            { $set: { favorite: contact.favorite === true }},
-            { returnDocument: "after", upsert: true }
+    async create(file,payload) {
+        const contact = this.extractConactData({...payload,File:file.name});
+        console.log(contact);
+        const fs = require('fs');
+        let folderPath = "./Upload/"+contact.SoCongVan;
+        try {
+            if (!fs.existsSync("./Upload")) {
+                fs.mkdirSync("./Upload");
+            }
+            if (!fs.existsSync(folderPath)) {
+                fs.mkdirSync(folderPath);
+            }
+            
+        } catch (err) {
+            console.error(err);
+        }
+        file.mv(`${folderPath}/${file.name}`, function (err) {
+            if (err) {
+                console.log(err)
+                return res.status(500).send({ msg: "Error occured" });
+            }
+        });
+
+        const result = await this.Contact.insertOne(
+            contact
         );
         return result.value;
     }
